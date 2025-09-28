@@ -2,3 +2,13 @@ Vector-DB/venv
 Vector-DB/.env
 Vector-DB/commands.index
 *.DS_Store
+
+Frontend-CLI/target/
+Frontend-CLI/*.exe
+Frontend-CLI/*.exe~
+Frontend-CLI/*.dll
+Frontend-CLI/*.dylib
+Frontend-CLI/*.so
+Frontend-CLI/*.log
+Frontend-CLI/*.swp
+Frontend-CLI/**/Cargo.lock
