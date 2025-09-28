@@ -1,36 +1,48 @@
-import os
-from dotenv import load_dotenv
-from pinecone import Pinecone
-from sentence_transformers import SentenceTransformer
+import chromadb
+from chromadb.utils import embedding_functions
 
-# Load environment variables
-load_dotenv()
+# Initialize Chroma client (same persistence path)
+chroma_client = chromadb.PersistentClient(path="./chroma_db")
 
-# Initialize Pinecone client
-pc = Pinecone(api_key=os.getenv("PINECONE_API_KEY"))
+# Define collection name (same as vectorizer.py)
+collection_name = "syntax-pilot-commands"
 
-# Connect to your index
-index_name = "syntax-pilot-commands"
-index = pc.Index(index_name)
+# Wrap into the same embedding function
+sentence_transformer_ef = embedding_functions.SentenceTransformerEmbeddingFunction(
+    model_name="all-MiniLM-L6-v2"
+)
 
-# Load the same embedding model used in vectorizer.py
-model = SentenceTransformer("all-MiniLM-L6-v2")
+# Load the collection
+collection = chroma_client.get_collection(
+    name=collection_name,
+    embedding_function=sentence_transformer_ef,
+)
 
 # Search function
-def search_command(user_query, k=1):
-    # Turn query into embedding
-    query_emb = model.encode(user_query).tolist()
-    
-    # Query Pinecone
-    results = index.query(
-        vector=query_emb,
-        top_k=k,
-        include_metadata=True
+def search_command(user_query):
+    results = collection.query(
+        query_texts=[user_query],
+        n_results=1,
+        include=["metadatas", "distances"]
     )
-    
-    # Extract command(s)
-    return [(m["metadata"]["command"], m["score"]) for m in results["matches"]]
 
-# 🔎 Example queries
-print(search_command("I need a new nextjs project"))
-print(search_command("please give me a nextjs boilerplate"))
+    best_match = results["metadatas"][0][0]["command"]
+    score = results["distances"][0][0]
+    return best_match, score
+
+if __name__ == "__main__":
+    print("🔎 Syntax Pilot - Command Search")
+    print("Type 'exit' to quit.\n")
+
+    while True:
+        query = input("Enter your query: ")
+        if query.lower() in ["exit", "quit"]:
+            break
+
+        result = search_command(query)
+
+        if result:
+            command, score = result
+            print(f"Best Match: {command} (Score: {score:.4f})\n")
+        else:
+            print("No matching command found.\n")

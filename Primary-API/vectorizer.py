@@ -1,49 +1,37 @@
 import os
-import json
-from dotenv import load_dotenv
-from pinecone import Pinecone, ServerlessSpec
 from sentence_transformers import SentenceTransformer
+import chromadb
+from chromadb.utils import embedding_functions
 
-# Load environment variables (expects PINECONE_API_KEY in .env)
-load_dotenv()
+chroma_client = chromadb.PersistentClient(path="./chroma_db")
 
-# Initialize Pinecone client
-pc = Pinecone(api_key=os.getenv("PINECONE_API_KEY"))
+# Define collection name
+collection_name = "syntax-pilot-commands"
 
-# Define index name
-index_name = "syntax-pilot-commands"
+# Wrap into a Chroma embedding function
+sentence_transformer_ef = embedding_functions.SentenceTransformerEmbeddingFunction(
+    model_name="all-MiniLM-L6-v2"
+)
 
-# Create index if it doesn’t exist
-if not pc.has_index(index_name):
-    pc.create_index(
-        name=index_name,
-        dimension=384,             # SentenceTransformer "all-MiniLM-L6-v2"
-        metric="cosine",
-        spec=ServerlessSpec(
-            cloud="aws",           # or "gcp"
-            region="us-east-1"     # check region in your Pinecone console
-        )
+# Get or create collection
+collection = chroma_client.get_or_create_collection(
+    name=collection_name,
+    embedding_function=sentence_transformer_ef,
+    metadata={"hnsw:space": "cosine"}  # cosine similarity
+)
+
+# Seed commands (only run once; IDs must be unique)
+commands = [
+    {"id": "1", "command": "npx create-next-app", "text": "I need a new nextjs project"},
+    {"id": "2", "command": "git clone https://github.com/vercel/nextjs-boilerplate.git", "text": "please give me a nextjs boilerplate"},
+]
+
+try:
+    collection.add(
+        ids=[cmd["id"] for cmd in commands],
+        documents=[cmd["text"] for cmd in commands],
+        metadatas=[{"command": cmd["command"]} for cmd in commands],
     )
-
-index = pc.Index(index_name)
-
-with open("commands.json") as f:
-    data = json.load(f)
-
-model = SentenceTransformer("all-MiniLM-L6-v2")
-
-vectors = []
-for i, d in enumerate(data):
-    emb = model.encode(d["query"]).tolist()
-    vectors.append({
-        "id": f"cmd-{i}",
-        "values": emb,
-        "metadata": {
-            "command": d["command"],
-            "query": d["query"]
-        }
-    })
-
-index.upsert(vectors=vectors)
-
-print(f"Upserted {len(vectors)} commands into Pinecone index '{index_name}'")
+    print("Commands added successfully!")
+except Exception as e:
+    print("Skipping add (maybe already exists):", e)

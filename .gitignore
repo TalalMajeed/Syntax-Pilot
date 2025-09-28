@@ -1,4 +1,11 @@
 Primary-API/venv
+Primary-API/__pycache__/
+Primary-API/*.pyc
+Primary-API/*.pyo
+Primary-API/*.pyd
+Primary-API/.env
+Primary-API/chromadb/
+Primary-API/sentence_transformers/
 
 Frontend-CLI/target/
 Frontend-CLI/*.exe
@@ -13,3 +20,26 @@ Frontend-CLI/onnx_model
 
 *.env
 *.DS_Store
+
+Admin-Panel/node_modules
+Admin-Panel/.pnp
+Admin-Panel/.pnp.*
+Admin-Panel/.yarn/*
+Admin-Panel/!.yarn/patches
+Admin-Panel/!.yarn/plugins
+Admin-Panel/!.yarn/releases
+Admin-Panel/!.yarn/versions
+Admin-Panel/coverage
+Admin-Panel/.next/
+Admin-Panel/out/
+Admin-Panel/build
+Admin-Panel/.DS_Store
+Admin-Panel/*.pem
+Admin-Panel/npm-debug.log*
+Admin-Panel/yarn-debug.log*
+Admin-Panel/yarn-error.log*
+Admin-Panel/.pnpm-debug.log*
+Admin-Panel/.env*
+Admin-Panel/.vercel
+Admin-Panel/*.tsbuildinfo
+Admin-Panel/next-env.d.ts
