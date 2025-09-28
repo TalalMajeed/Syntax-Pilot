@@ -1,0 +1,4 @@
+Vector-DB/venv
+Vector-DB/.env
+Vector-DB/commands.index
+*.DS_Store

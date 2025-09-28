@@ -1,22 +1,23 @@
-import faiss
-import numpy as np
-import json
+import pinecone
 from sentence_transformers import SentenceTransformer
+import os
+from dotenv import load_dotenv
 
-# Load index + metadata
-index = faiss.read_index("commands.index")
-with open("commands.json") as f:
-    data = json.load(f)
+load_dotenv()
 
-# Load the same embedding model used for building
+pinecone.init(
+    api_key=os.getenv("PINECONE_API_KEY"),
+    environment="us-west1-gcp"
+)
+
+index = pinecone.Index("cli-commands")
+
 model = SentenceTransformer("all-MiniLM-L6-v2")
 
-# Search function
 def search_command(user_query, k=1):
-    vec = np.array([model.encode(user_query)], dtype="float32")
-    distances, indices = index.search(vec, k)
-    return [(data[i]["command"], float(distances[0][j])) for j, i in enumerate(indices[0])]
+    query_emb = model.encode(user_query).tolist()
+    results = index.query(vector=query_emb, top_k=k, include_metadata=True)
+    return [(m["metadata"]["command"], m["score"]) for m in results["matches"]]
 
 # Example
 print(search_command("I need a new nextjs project"))
-print(search_command("Please give me a nextjs boilerplate"))
