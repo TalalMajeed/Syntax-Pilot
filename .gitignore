@@ -4,7 +4,7 @@ Primary-API/*.pyc
 Primary-API/*.pyo
 Primary-API/*.pyd
 Primary-API/.env
-Primary-API/chromadb/
+Primary-API/chroma_db/
 Primary-API/sentence_transformers/
 
 Frontend-CLI/target/
