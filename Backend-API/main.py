@@ -1,4 +1,3 @@
-# main.py
 from fastapi import FastAPI
 from pydantic import BaseModel
 from typing import Optional
@@ -10,15 +9,6 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Example data model
-class Item(BaseModel):
-    name: str
-    description: Optional[str] = None
-    price: float
-    in_stock: bool = True
-
-
-# Root route
 @app.get("/")
 def read_root():
     html_content = """
@@ -29,10 +19,22 @@ def read_root():
     """
     return HTMLResponse(content=html_content, status_code=200)
 
-# Example health check route
 @app.get("/health")
 def health_check():
     return {"status": "ok"}
+
+#I need a route /query which takes a string as input and gives a string as output
+class QueryRequest(BaseModel):
+    query: str 
+
+class QueryResponse(BaseModel):
+    response: str
+
+@app.post("/query", response_model=QueryResponse)
+def handle_query(request: QueryRequest):
+    print(f"Received query: {request.query}")
+    response_text = "echo hello world"
+    return QueryResponse(response=response_text)
 
 if __name__ == "__main__":
     import uvicorn
