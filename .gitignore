@@ -1,5 +1,9 @@
 Backend-API/venv
 Backend-API/commands.index
+Backend-API/__pycache__/
+Backend-API/*.pyc
+Backend-API/*.pyo
+Backend-API/*.pyd
 
 Frontend-CLI/target/
 Frontend-CLI/*.exe
