@@ -1,5 +1,4 @@
 use std::env;
-use std::io::{self, Write};
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize)]
@@ -29,7 +28,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .send()
         .await;
 
-    // Handle connection errors gracefully
     let res = match res {
         Ok(r) => r,
         Err(e) => {
@@ -56,27 +54,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     };
 
-    let command = body.response.trim();
-
-    print!("Confirm: {}? ", command);
-    io::stdout().flush()?;
-    let mut confirm = String::new();
-    io::stdin().read_line(&mut confirm)?;
-    if !confirm.trim().is_empty() {
-        println!("Command rejected.");
-        return Ok(());
-    }
-
-    let status = std::process::Command::new("sh")
-        .arg("-c")
-        .arg(command)
-        .status()?;
-
-    if status.success() {
-        println!("Command executed successfully.");
-    } else {
-        println!("Command failed with status: {:?}", status);
-    }
+    // ✅ Just print the suggested command
+    println!("{}", body.response.trim());
 
     Ok(())
 }

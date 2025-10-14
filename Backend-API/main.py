@@ -71,26 +71,9 @@ def seed_chroma_if_empty():
     print(f"Seeded {len(rows)} commands into Chroma.")
 
 def rebuild_chroma():
-    """Rebuild the entire Chroma DB from SQLite."""
-    print("Rebuilding Chroma database...")
-    # Avoid destructive rebuilds. This function is retained for compatibility,
-    # but now behaves like a non-destructive seed if empty.
-    return seed_chroma_if_empty()
-
-    conn = get_db()
-    rows = conn.execute("SELECT id, query, command FROM commands").fetchall()
-    conn.close()
-
-    if not rows:
-        print("ℹNo commands found in SQLite.")
-        return
-
-    ids = [str(row["id"]) for row in rows]
-    docs = [row["query"] for row in rows]
-    metas = [{"command": row["command"]} for row in rows]
-
-    collection.add(documents=docs, metadatas=metas, ids=ids)
-    print(f"Indexed {len(rows)} commands into Chroma.")
+    """Legacy rebuild: non-destructive. Seeds only if empty."""
+    print("Rebuilding Chroma database (non-destructive seed if empty)...")
+    seed_chroma_if_empty()
 
 class QueryRequest(BaseModel):
     query: str
