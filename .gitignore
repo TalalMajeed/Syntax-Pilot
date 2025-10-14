@@ -1,5 +1,5 @@
-Vector-DB/venv
-Vector-DB/commands.index
+Backend-API/venv
+Backend-API/commands.index
 
 Frontend-CLI/target/
 Frontend-CLI/*.exe
