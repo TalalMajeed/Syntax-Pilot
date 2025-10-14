@@ -22,23 +22,42 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let query = args.join(" ");
 
-    // Send query to local AI server
     let client = reqwest::Client::new();
     let res = client
         .post("http://localhost:8000/query")
         .json(&QueryRequest { query })
         .send()
-        .await?;
+        .await;
+
+    // Handle connection errors gracefully
+    let res = match res {
+        Ok(r) => r,
+        Err(e) => {
+            if e.is_connect() {
+                eprintln!("Connection Error");
+                std::process::exit(1);
+            } else {
+                eprintln!("Error: {}", e);
+                std::process::exit(1);
+            }
+        }
+    };
 
     if !res.status().is_success() {
         eprintln!("Error: server returned status {}", res.status());
         std::process::exit(1);
     }
 
-    let body: QueryResponse = res.json().await?;
+    let body: QueryResponse = match res.json().await {
+        Ok(b) => b,
+        Err(_) => {
+            eprintln!("Error: failed to parse server response");
+            std::process::exit(1);
+        }
+    };
+
     let command = body.response.trim();
 
-    // Confirm execution
     print!("Confirm: {}? ", command);
     io::stdout().flush()?;
     let mut confirm = String::new();
@@ -48,7 +67,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         return Ok(());
     }
 
-    // Execute the command
     let status = std::process::Command::new("sh")
         .arg("-c")
         .arg(command)
