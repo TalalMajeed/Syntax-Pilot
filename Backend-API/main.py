@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 from pydantic import BaseModel
 from fastapi.responses import HTMLResponse
 from typing import List
@@ -38,10 +38,44 @@ collection = chroma_client.get_or_create_collection(
     embedding_function=embedding_func
 )
 
+def seed_chroma_if_empty():
+    """Seed Chroma from SQLite only if empty (non-destructive)."""
+    try:
+        count = collection.count()
+    except Exception:
+        # Fallback in case count is unavailable in this version
+        try:
+            peek = collection.peek()
+            count = len(peek.get("ids", []))
+        except Exception:
+            count = 0
+
+    if count and count > 0:
+        print(f"Chroma already has {count} items. Skipping initial seed.")
+        return
+
+    print("Seeding Chroma from SQLite (initial only)...")
+    conn = get_db()
+    rows = conn.execute("SELECT id, query, command FROM commands").fetchall()
+    conn.close()
+
+    if not rows:
+        print("ℹ No commands found in SQLite to seed.")
+        return
+
+    ids = [str(row["id"]) for row in rows]
+    docs = [row["query"] for row in rows]
+    metas = [{"command": row["command"]} for row in rows]
+
+    collection.add(documents=docs, metadatas=metas, ids=ids)
+    print(f"Seeded {len(rows)} commands into Chroma.")
+
 def rebuild_chroma():
     """Rebuild the entire Chroma DB from SQLite."""
     print("Rebuilding Chroma database...")
-    collection.delete(where={})  # Clear collection
+    # Avoid destructive rebuilds. This function is retained for compatibility,
+    # but now behaves like a non-destructive seed if empty.
+    return seed_chroma_if_empty()
 
     conn = get_db()
     rows = conn.execute("SELECT id, query, command FROM commands").fetchall()
@@ -103,12 +137,24 @@ def get_all_commands():
 @app.post("/commands")
 def add_command(cmd: CommandItem):
     conn = get_db()
-    conn.execute("INSERT INTO commands (query, command) VALUES (?, ?)", (cmd.query, cmd.command))
+    cur = conn.execute(
+        "INSERT INTO commands (query, command) VALUES (?, ?)", (cmd.query, cmd.command)
+    )
     conn.commit()
+    new_id = cur.lastrowid
     conn.close()
 
-    rebuild_chroma()
-    return {"message": "Command added and Chroma rebuilt successfully."}
+    # Append the new item to Chroma without rebuilding
+    try:
+        collection.add(
+            documents=[cmd.query],
+            metadatas=[{"command": cmd.command}],
+            ids=[str(new_id)],
+        )
+    except Exception as e:
+        print(f"Warning: Failed to index new command in Chroma: {e}")
+
+    return {"message": "Command added and indexed successfully.", "id": new_id}
 
 
 @app.post("/query", response_model=QueryResponse)
@@ -128,7 +174,7 @@ def query_command(request: QueryRequest):
 @app.on_event("startup")
 def on_startup():
     init_db()
-    rebuild_chroma()
+    seed_chroma_if_empty()
     print("Ecello Pilot RAG API ready!")
 
 if __name__ == "__main__":
