@@ -1,2 +1,6 @@
 fastapi
 uvicorn
+pydantic
+sqlite-utils
+chromadb
+sentence-transformers
