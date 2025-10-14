@@ -23,7 +23,6 @@ def read_root():
 def health_check():
     return {"status": "ok"}
 
-#I need a route /query which takes a string as input and gives a string as output
 class QueryRequest(BaseModel):
     query: str 
 
